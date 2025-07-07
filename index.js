@@ -1,4 +1,5 @@
 import express from 'express';
+import fetch from 'node-fetch';
 import cors from 'cors';
 
 const app = express();
@@ -6,24 +7,20 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 
-app.get('/price', async (req, res) => {
-  const ids = req.query.ids;
-  const vs_currency = req.query.vs_currency || 'usd';
-
-  if (!ids) {
-    return res.status(400).json({ error: 'Missing ids parameter' });
-  }
+app.get('/:url(*)', async (req, res) => {
+  const { url } = req.params;
 
   try {
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=${vs_currency}`;
-    const response = await fetch(url);
-    const data = await response.json();
-    res.json(data);
+    const response = await fetch(`https://${url}`);
+    const data = await response.text();
+
+    res.set('Content-Type', response.headers.get('content-type'));
+    res.status(response.status).send(data);
   } catch (error) {
-    res.status(500).json({ error: error.toString() });
+    res.status(500).json({ error: 'Failed to fetch target URL', details: error.message });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Proxy server running at http://localhost:${PORT}`);
+  console.log(`Proxy server running on port ${PORT}`);
 });
